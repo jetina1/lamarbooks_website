@@ -13,6 +13,9 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'nestjs' => [
+        'base_uri' => env('SERVICES_NESTJS_BASE_URI'),
+    ],
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
