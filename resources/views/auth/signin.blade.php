@@ -161,18 +161,20 @@
         const data = Object.fromEntries(formData.entries());
 
         try {
-            const response = await fetch('https://lalmarbooks.onrender.com/auth/signin', { // Adjust the URL to your Node.js endpoint
+            const response = await fetch('https://lalmarbooks.onrender.com/auth/signin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(data),
             });
+            console.log(response)
 
             const result = await response.json();
             if (response.ok) {
                 // Store the token and redirect to dashboard
                 localStorage.setItem('auth_token', result.token); // Store token for future requests
+                console.log(result.token)
                 window.location.href = `/dashboard`; // Adjust the URL to your dashboard
             } else {
                 // Handle errors

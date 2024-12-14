@@ -6,82 +6,112 @@ use Illuminate\Http\Request;
 use App\Models\Book;
 use App\Models\Category; // Assuming you have a Category model
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use GuzzleHttp\Client; // Import Guzzle Client
+use \Log;
 
-use Log;
 class BookController extends Controller
 {
     // Display all books
+    // Display all books
     public function index()
     {
-        // Fetch books directly from the database
-        $books = Book::all();
-        //??????????????????????????? from the backend
+        $remoteApiUrl = 'https://lalmarbooks.onrender.com/books/all';
+        try {
+            $response = file_get_contents($remoteApiUrl);
+            $books = json_decode($response, true);
+        } catch (\Exception $e) {
+            $books = []; // Fallback in case of an error
+        }
+
         return view('books.index', compact('books'));
     }
-
     // Show form to create a new book
     public function create()
     {
-        // Get categories for the form
-        // ftch all category from the backend
-        $categories = Category::all();
+        // Fetch categories dynamically from the backend API
+        $response = Http::get('https://lalmarbooks.onrender.com/categories');
+
+        if ($response->successful()) {
+            $categories = $response->json(); // Assuming the response is an array of categories
+        } else {
+            $categories = []; // Handle cases where the API request fails
+        }
+
         return view('books.create', compact('categories'));
     }
 
-    // Store a newly created book
+
+    // Handle form submission and send data with files to backend API
     public function store(Request $request)
     {
-        // $user = JWTAuth::parseToken()->authenticate();
-
+        // Step 1: Validate input data and files
         $validated = $request->validate([
-
             'title' => 'required|string|max:255',
             'author' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'category' => 'required|integer',
-            'description' => 'required|string|max:1255',
-            'pdf' => 'required|mimes:pdf|max:51200',  // 50MB max PDF file
-            'image' => 'required|mimes:jpeg,png,jpg,j|max:5120', // 5MB max image file
+            'price' => 'required|numeric|min:0',
+            'category' => 'required',
+            'description' => 'required|string',
+            'pdf' => 'required|file|mimes:pdf', // Max 10MB
+            'image' => 'required|file|mimes:jpeg,png|max:10240', // Max 10MB
         ]);
 
-        // Handle file uploads for PDF and Image
-        $pdfPath = $request->file('pdf')->store('public/pdfs');
-        $thumbnails = $request->file('image')->store('public/thumbnails');
+        // Step 2: Prepare the multipart form data
+        $formData = [
+            'title' => $validated['title'],
+            'author' => $validated['author'],
+            'price' => $validated['price'],
+            'category_id' => $validated['category'],
+            'description' => $validated['description'],
+        ];
 
-        // Create the book
-        $book = Book::create([
-            'title' => $request->title,
-            'author' => $request->author,
-            'price' => $request->price,
-            'category_id' => $request->category,
-            'description' => $request->description,
-            'pdf_path' => $pdfPath,
-            'thumbnails' => $thumbnails,
-            'user_id' => 1, // Set the authenticated user's ID
-        ]);
+        // Step 3: Add files as multipart
+        if ($request->hasFile('pdf')) {
+            $formData['pdf'] = fopen($request->file('pdf')->getRealPath(), 'r');
+        }
 
+        if ($request->hasFile('image')) {
+            $formData['image'] = fopen($request->file('image')->getRealPath(), 'r');
+        }
 
-        return redirect()->route('books.index');
+        // Step 4: Send a multipart POST request to the backend API with a timeout
+        $response = Http::timeout(100) // Set timeout to 60 seconds
+            ->attach('pdf', $request->file('pdf')->get(), $request->file('pdf')->getClientOriginalName())
+            ->attach('image', $request->file('image')->get(), $request->file('image')->getClientOriginalName())
+            ->post('https://lalmarbooks.onrender.com/books/create', $formData);
+
+        // Step 5: Handle the response
+        if ($response->successful()) {
+            return redirect()->route('books.index')->with('success', 'Book created successfully.');
+        } else {
+            // Log the response for debugging purposes
+            Log::error('Failed to create the book.', ['response' => $response->body()]);
+            return back()->withErrors(['error' => 'Failed to create the book. Please try again.']);
+        }
     }
+
+
 
     // Show form to edit an existing book
     public function edit($id)
     {
         $client = new Client();
-        // $book = Book::findOrFail($id);
-        // $categories = Category::all(); // Get categories for the form
-        // Fetch categories from Node.js backend
+
         try {
-            $categoryresponse = $client->get('https://lalmarbooks.onrender.com/categories/all'); // Replace with your Node.js URL
-            $categories = json_decode($categoryresponse->getBody()->getContents(), true); // Decode the JSON response
-            $bookresponse = $client->get('https://lalmarbooks.onrender.com/books/specific/' . $id); // Replace with your Node.js URL
-            $book = json_decode($bookresponse->getBody()->getContents(), true); // Decode the JSON response
+            // Fetch categories from Node.js backend
+            $categoryResponse = $client->get('https://lalmarbooks.onrender.com/categories/all');
+            $categories = json_decode($categoryResponse->getBody()->getContents(), true);
+
+            // Fetch specific book details from Node.js backend
+            $bookResponse = $client->get('https://lalmarbooks.onrender.com/books/specific/' . $id);
+            $book = json_decode($bookResponse->getBody()->getContents(), true);
+
         } catch (\Exception $e) {
-            $categories = []; // If there is an error, set an empty array
-            // Optionally, handle the error (log it or display a message)
+            // Handle any errors while fetching data
+            return redirect()->back()->withErrors(['error' => 'Failed to fetch data from backend: ' . $e->getMessage()]);
         }
+
         return view('books.edit', compact('book', 'categories'));
     }
 
@@ -246,3 +276,108 @@ class BookController extends Controller
 
 //     return response()->json(['error' => 'Image not found'], 404);
 // }
+/*
+
+// Show form to create a new book
+    public function create()
+    {
+        $categories = Category::all(); // Local categories
+        return view('books.create', compact('categories'));
+    }
+
+    // Store a newly created book
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'author' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'category' => 'required|integer',
+            'description' => 'required|string|max:1255',
+            'pdf' => 'required|mimes:pdf|max:51200', // Max 50MB
+            'image' => 'required|mimes:jpeg,png,jpg|max:5120', // Max 5MB
+        ]);
+
+        $pdfPath = $request->file('pdf')->store('public/pdfs');
+        $imagePath = $request->file('image')->store('public/images');
+
+        Book::create([
+            'title' => $request->title,
+            'author' => $request->author,
+            'price' => $request->price,
+            'category_id' => $request->category,
+            'description' => $request->description,
+            'pdf_path' => $pdfPath,
+            'thumbnails' => $imagePath,
+            'user_id' => 1, // Example static user
+        ]);
+
+        return redirect()->route('books.index')->with('success', 'Book created successfully!');
+    }
+
+    // Show form to edit a book
+    public function edit($id)
+    {
+        $client = new Client();
+        try {
+            $categoryResponse = $client->get('https://lalmarbooks.onrender.com/categories/all');
+            $categories = json_decode($categoryResponse->getBody()->getContents(), true);
+
+            $bookResponse = $client->get('https://lalmarbooks.onrender.com/books/specific/' . $id);
+            $book = json_decode($bookResponse->getBody()->getContents(), true);
+        } catch (\Exception $e) {
+            return redirect()->route('books.index')->withErrors('Failed to load data.');
+        }
+
+        return view('books.edit', compact('book', 'categories'));
+    }
+
+    // Update an existing book
+    public function update(Request $request, $id)
+    {
+        $book = Book::find($id);
+
+        if (!$book) {
+            return redirect()->route('books.index')->with('error', 'Book not found.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
+            'price' => 'nullable|numeric',
+            'category' => 'nullable|integer',
+            'pdf' => 'nullable|file|mimes:pdf',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg',
+        ]);
+
+        if ($request->filled('title')) $book->title = $request->input('title');
+        if ($request->filled('author')) $book->author = $request->input('author');
+        if ($request->filled('price')) $book->price = $request->input('price');
+        if ($request->filled('category')) $book->category_id = $request->input('category');
+
+        if ($request->hasFile('pdf')) {
+            if ($book->pdf_path && Storage::exists($book->pdf_path)) Storage::delete($book->pdf_path);
+            $book->pdf_path = $request->file('pdf')->store('public/pdfs');
+        }
+
+        if ($request->hasFile('image')) {
+            if ($book->thumbnails && Storage::exists($book->thumbnails)) Storage::delete($book->thumbnails);
+            $book->thumbnails = $request->file('image')->store('public/images');
+        }
+
+        $book->save();
+
+        return redirect()->route('books.index')->with('success', 'Book updated successfully!');
+    }
+
+    // Delete a book
+    public function destroy($id)
+    {
+        $book = Book::findOrFail($id);
+
+        Storage::delete($book->pdf_path);
+        Storage::delete($book->thumbnails);
+        $book->delete();
+
+        return redirect()->route('books.index')->with('success', 'Book deleted successfully!');
+    }*/

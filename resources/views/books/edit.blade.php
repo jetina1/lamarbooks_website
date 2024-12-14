@@ -1,26 +1,18 @@
 @include('body.head')
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="authorization-token" content="{{ session('token') }}">
 
-@include('body.header') <!-- Include Header -->
-@include('body.sidebar') <!-- Include Sidebar -->
+@include('body.header')
+@include('body.sidebar')
 
 <div class="main-content">
     <h2>Edit Book</h2>
-    <!-- <form action="https://lalmarbooks.onrender.com/books/{{ $book['id'] ?? $book->id }}" method="POST" -->
-    <!-- enctype="multipart/form-data"> -->
-
-    <!-- <form action="{{ route('books.update', $book['id'] ?? $book->id) }}" method="POST" enctype="multipart/form-data"> -->
-    <form action="https://lalmarbooks.onrender.com/books/{{ $book['id'] ?? $book->id }}" method="POST"
-        enctype="multipart/form-data">
+    <form id="edit-book-form" enctype="multipart/form-data">
         @csrf
-        @method('PUT')
 
         <div class="form-group">
             <label>Current Book Image</label>
-            @if(!empty($book['thumbnails']) || !empty($book->thumbnails))
-                <img src="https://lalmarbooks.onrender.com/books/thumbnails/{{ $book['thumbnails'] ?? $book->thumbnails }}"
-                    alt="Book Image" class="current-image">
+            @if(!empty($book['thumbnails']))
+                <img src="{{ $book['thumbnails'] }}" alt="Book Image" class="current-image">
             @else
                 <p class="no-image">No image available</p>
             @endif
@@ -28,48 +20,46 @@
 
         <div class="form-group">
             <label for="title">Book Title</label>
-            <input type="text" name="title" id="title" class="form-control"
-                value="{{ old('title', $book['title'] ?? $book->title) }}" required>
+            <input type="text" name="title" id="title" class="form-control" value="{{ $book['title'] }}" required>
         </div>
 
         <div class="form-group">
             <label for="author">Author</label>
-            <input type="text" name="author" id="author" class="form-control"
-                value="{{ old('author', $book['author'] ?? $book->author) }}" required>
+            <input type="text" name="author" id="author" class="form-control" value="{{ $book['author'] }}" required>
         </div>
 
         <div class="form-group">
             <label for="price">Price</label>
-            <input type="number" name="price" id="price" class="form-control"
-                value="{{ old('price', $book['price'] ?? $book->price) }}" step="0.01" required>
+            <input type="number" name="price" id="price" class="form-control" value="{{ $book['price'] }}" step="0.01"
+                required>
         </div>
 
         <div class="form-group">
             <label for="category">Category</label>
             <select name="category" id="category" class="form-control" required>
-                <option value="1" {{ ($book->category_id ?? 1) == 1 ? 'selected' : '' }}>Fiction</option>
-                <option value="2" {{ ($book->category_id ?? 2) == 2 ? 'selected' : '' }}>Non-Fiction</option>
-                <option value="3" {{ ($book->category_id ?? 3) == 3 ? 'selected' : '' }}>Science</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category['id'] }}" {{ $book['category_id'] == $category['id'] ? 'selected' : '' }}>
+                        {{ $category['name'] }}
+                    </option>
+                @endforeach
             </select>
         </div>
 
         <div class="form-group">
             <label for="isfree">Is Free</label>
             <select name="isfree" id="isfree" class="form-control" required>
-                <option value="1" {{ (old('isfree', $book['isfree'] ?? $book->isfree) == 1) ? 'selected' : '' }}>Yes
-                </option>
-                <option value="0" {{ (old('isfree', $book['isfree'] ?? $book->isfree) == 0) ? 'selected' : '' }}>No
-                </option>
+                <option value="1" {{ $book['isfree'] == 1 ? 'selected' : '' }}>Yes</option>
+                <option value="0" {{ $book['isfree'] == 0 ? 'selected' : '' }}>No</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label for="pdf">Upload PDF (if you want to update it)</label>
+            <label for="pdf">Upload PDF</label>
             <input type="file" name="pdf" id="pdf" class="form-control-file" accept="application/pdf">
         </div>
 
         <div class="form-group">
-            <label for="image">Upload Book Image (if you want to update it)</label>
+            <label for="image">Upload Book Image</label>
             <input type="file" name="image" id="image" class="form-control-file" accept="image/jpeg, image/png">
         </div>
 
@@ -77,7 +67,44 @@
     </form>
 </div>
 
-@include('body.footer') <!-- Include Footer -->
+@include('body.footer')
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('#edit-book-form');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const id = "{{ $book['id'] }}"; // Pass book ID from Blade
+
+            try {
+                const response = await fetch(`https://lalmarbooks.onrender.com/books/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                    body: formData,
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    alert('Book updated successfully!');
+                    window.location.href = '/books'; // Redirect to book list
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert('Failed to update the book. Please try again later.');
+            }
+        });
+    });
+</script>
+
+
+
 
 <style>
     /* General Reset */
@@ -103,6 +130,11 @@
         padding: 40px;
         border-radius: 10px;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        /* position: relative; */
+        margin-left: 250px;
+        /* Adjust this value to match the sidebar's width */
+        /* Ensures it's not overlapped by the sidebar */
+        /* z-index: 2; */
     }
 
     h2 {
@@ -194,37 +226,3 @@
         }
     }
 </style>
-
-<script>
-    document.querySelector('form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const formData = new FormData(e.target);
-        const id = e.target.action.split('/').pop();
-
-        // Get CSRF token from meta tag
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-        try {
-            const response = await fetch(`https://lalmarbooks.onrender.com/books/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,  // Include CSRF token in headers
-                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`, // Add your Authorization header if needed
-                },
-                body: formData,
-            });
-
-            const result = await response.json();
-            if (response.ok) {
-                alert('Book updated successfully!');
-            } else {
-                alert(`Error: ${result.error}`);
-            }
-        } catch (error) {
-            alert('Failed to update the book. Please try again later.');
-        }
-    });
-
-
-</script>

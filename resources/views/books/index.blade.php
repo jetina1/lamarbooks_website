@@ -1,12 +1,14 @@
-@include('body.head') <!-- Include Head -->
-@include('body.header') <!-- Include Header -->
-@include('body.sidebar') <!-- Include Sidebar -->
-<meta name="csrf-token" content="{{ csrf_token() }}">
+@include('body.head')
+@include('body.header')
+@include('body.sidebar')
 
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <div class="main-content">
     <h2>All Books</h2>
     <a href="{{ route('books.create') }}" class="btn btn-primary">Add New Book</a>
+
+    <div id="loading" style="display: none; text-align: center; padding: 20px;">Loading...</div>
 
     <table class="table">
         <thead>
@@ -19,13 +21,17 @@
         </thead>
         <tbody>
             @foreach ($books as $book)
-                <tr data-book-id="{{ $book->id }}">
-                    <td>{{ $book->title }}</td>
-                    <td>{{ $book->author }}</td>
-                    <td>{{ $book->price }}</td>
+                <tr>
+                    <td>{{ $book['title'] }}</td>
+                    <td>{{ $book['author'] }}</td>
+                    <td>${{ number_format($book['price'], 2) }}</td>
                     <td>
-                        <a href="{{ route('books.edit', $book->id) }}" class="btn btn-warning">Edit</a>
-                        <button class="btn btn-danger" onclick="deleteBook('{{ $book->id }}')">Delete</button>
+                        <a href="{{ route('books.edit', $book['id']) }}" class="btn btn-warning">Edit</a>
+                        <form action="{{ route('books.delete', $book['id']) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
                     </td>
                 </tr>
             @endforeach
@@ -33,36 +39,27 @@
     </table>
 </div>
 
-@include('body.footer') <!-- Include Footer -->
+@include('body.footer')
 
 <style>
     /* General Styles */
     body {
         font-family: 'Arial', sans-serif;
         background-color: #f4f4f4;
-        /* Light gray background */
         color: #333;
         margin: 0;
         padding: 0;
     }
 
-    /* Main Content Area */
     .main-content {
         padding-left: 350px;
-        /* Adjust for sidebar */
         padding-right: 20px;
-        /* Prevent content touching edge */
         padding-top: 130px;
-        /* Adjust top padding for header */
         padding-bottom: 70px;
-        /* Avoid content touching footer */
         min-height: calc(100vh - 60px);
-        /* Ensure content fills screen minus header */
         background-color: #fff;
-        /* White background for content */
     }
 
-    /* Table Styles */
     .table {
         width: 100%;
         margin-top: 20px;
@@ -78,16 +75,13 @@
 
     .table th {
         background-color: #f2f2f2;
-        /* Light gray header */
         font-weight: bold;
     }
 
     .table tr:hover {
         background-color: #f1f1f1;
-        /* Highlight row on hover */
     }
 
-    /* Button Styles */
     .btn {
         padding: 10px 20px;
         font-size: 16px;
@@ -125,7 +119,6 @@
         background-color: #c82333;
     }
 
-    /* Responsive Styles */
     @media (max-width: 768px) {
         .main-content {
             padding-left: 0;
@@ -134,87 +127,104 @@
 
         .table {
             font-size: 14px;
-            /* Adjust table font size for smaller screens */
         }
 
         .btn {
             font-size: 14px;
-            /* Smaller buttons on mobile */
             padding: 8px 15px;
         }
     }
 </style>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        fetch('https://lalmarbooks.onrender.com/books/all')  // Replace with actual URL of your Node.js API
-            .then(response => response.json())
+
+<script>document.addEventListener("DOMContentLoaded", function () {
+        const loadingIndicator = document.getElementById('loading');
+        const tableBody = document.querySelector('.table tbody');
+        const fetchBooksUrl = 'https://lalmarbooks.onrender.com/books/all';
+
+        // Display the loading indicator
+        loadingIndicator.style.display = 'block';
+
+        // Fetch books data from the remote API
+        fetch(fetchBooksUrl)
+            .then(response => {
+                // Hide the loading indicator
+                loadingIndicator.style.display = 'none';
+
+                if (response.status === 404) {
+                    // Display "No books are available" directly on the screen
+                    tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center;">No books are available.</td>
+                    </tr>`;
+                    return null; // Stop further processing
+                }
+
+                if (!response.ok) {
+                    throw new Error("Network response was not ok: " + response.statusText);
+                }
+
+                return response.json();
+            })
             .then(data => {
-                const tableBody = document.querySelector('.table tbody');
-                tableBody.innerHTML = ''; // Clear existing rows
+                if (!data) return; // Exit if no data is returned (e.g., 404 case)
 
-                // Loop through the data and append it to the table
+                // Check if the response contains books
+                if (!Array.isArray(data) || data.length === 0) {
+                    tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center;">No books are available.</td>
+                    </tr>`;
+                    return;
+                }
+
+                // Populate the table with book data
                 data.forEach(book => {
-                    const row = document.createElement('tr');
-
-                    const titleCell = document.createElement('td');
-                    titleCell.textContent = book.title;
-                    row.appendChild(titleCell);
-
-                    const authorCell = document.createElement('td');
-                    authorCell.textContent = book.author;
-                    row.appendChild(authorCell);
-
-                    const priceCell = document.createElement('td');
-                    priceCell.textContent = book.price;
-                    row.appendChild(priceCell);
-
-                    const actionsCell = document.createElement('td');
-                    actionsCell.innerHTML = `
-                    <a href="/books/${book.id}/edit" class="btn btn-warning">Edit</a>
-                    <form action="/books/${book.id}/delete" method="POST" style="display:inline;">
-                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                    </form>
-                `;
-                    row.appendChild(actionsCell);
-
-                    tableBody.appendChild(row);
+                    const row = `
+                    <tr>
+                        <td>${book.title}</td>
+                        <td>${book.author}</td>
+                        <td>$${parseFloat(book.price).toFixed(2)}</td>
+                        <td>
+                            <a href="/books/edit/${book.id}" class="btn btn-warning">Edit</a>
+                            <form action="/books/${book.id}" method="POST" style="display:inline;">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]').getAttribute('content')}">
+                                <button type="submit" class="btn btn-danger delete-book">Delete</button>
+                            </form>
+                        </td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
                 });
+
+                // Attach delete confirmation functionality to dynamically added delete buttons
+                attachDeleteEventListeners();
             })
             .catch(error => {
-                console.error('Error fetching books:', error);
-            });
-    });
-</script>
-<script>
-    // Function to delete the book
-    function deleteBook(bookId) {
-        if (confirm('Are you sure?')) {
-            const token = localStorage.getItem('auth_token');  // Get the token from localStorage
+                // Hide the loading indicator
+                loadingIndicator.style.display = 'none';
 
-            fetch(`https://lalmarbooks.onrender.com/books/${bookId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,  // Include Authorization header with token
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), // CSRF Token
-                    'Content-Type': 'application/json'   // Set the content type to JSON
-                },
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Book deleted successfully!');
-                        // Optionally, you can remove the book row from the table
-                        const row = document.querySelector(`tr[data-book-id="${bookId}"]`);
-                        row.remove();
-                    } else {
-                        alert('Error: ' + data.error);
+                // Display an error message
+                tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; color: red;">
+                        Failed to load books: ${error.message}
+                    </td>
+                </tr>`;
+            });
+
+        // Function to handle delete confirmation for dynamically added delete buttons
+        function attachDeleteEventListeners() {
+            const deleteButtons = document.querySelectorAll('.delete-book');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function (event) {
+                    event.preventDefault(); // Prevent form submission
+                    const form = this.closest('form');
+                    const confirmed = confirm("Are you sure you want to delete this book?");
+                    if (confirmed) {
+                        form.submit();
                     }
-                })
-                .catch(error => {
-                    console.error('Error deleting book:', error);
-                    alert('An error occurred while deleting the book.');
                 });
+            });
         }
-    }
+    });
 </script>

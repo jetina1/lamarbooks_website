@@ -66,10 +66,12 @@
                 });
 
                 const result = await response.json();
+                console.log(result);
 
                 if (response.ok) {
                     const token = result.token;
                     localStorage.setItem('auth_token', token);
+                    console.log(token)
                     window.location.href = `/dashboard`; // Simplified redirection
                 } else {
                     document.getElementById('error-list').innerHTML = Array.isArray(result.errors)

@@ -21,8 +21,8 @@ Route::get('/signin', function () {
 Route::post('/signup', [AuthController::class, 'signup'])->name('admin.signup.submit');
 Route::post('/signin', [AuthController::class, 'Signin'])->name('admin.signin.submit');
 
-Route::post('/flutter/signup', [BackendController::class, 'fluttersignup'])->name('flutter.signup');
-Route::post('/flutter/signin', [BackendController::class, 'fluttersignin'])->name('flutter.signin');
+// Route::post('/flutter/signup', [BackendController::class, 'fluttersignup'])->name('flutter.signup');
+// Route::post('/flutter/signin', [BackendController::class, 'fluttersignin'])->name('flutter.signin');
 
 /********************password*************/
 Route::get('forgot/password', [AuthController::class, 'showResetPasswordForm'])->name('password.request');
@@ -44,10 +44,10 @@ Route::get('/dashboard', function () {
 
 //**************************BOOK***************************/
 
-Route::get('/books', [BookController::class, 'index'])->name('books.index'); // View all books
-Route::get('/flutter/books', [BackendController::class, 'allBook']);
+Route::get('/books', [BookController::class, 'index'])->name('books.index'); // Fetch and view all books
 Route::get('/books/create', [BookController::class, 'create'])->name('books.create'); // Create book form
-Route::post('/books/create', [BookController::class, 'store'])->name('books.create.submit');
+Route::post('/books/store', [BookController::class, 'store'])->name('books.store');
+// Route::post('/books/create', [BookController::class, 'store'])->name('books.create.submit');
 Route::get('books/image/{filename}', [BookController::class, 'getBookImage'])->name('books.image');
 Route::get('books/pdf/{filename}', [BookController::class, 'getBookPdf'])->name('books.pdf');
 Route::get('/books/{id}/edit', [BookController::class, 'edit'])->name('books.edit'); // Edit book form

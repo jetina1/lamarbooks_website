@@ -46,12 +46,12 @@
             window.location.href = '/signin';
             return;
         }
-
+        console.log(token);
         try {
             const response = await axios.get('https://lalmarbooks.onrender.com/auth/user', {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            const user = response.data.user;
+            const user = response.data;
 
             console.log('userrrrrrrrrrrrrrrr')
             console.log(user)

@@ -1,7 +1,6 @@
-@include('body.head')
+@include('body.head') 
 @include('body.header') <!-- Include Header -->
 @include('body.sidebar') <!-- Include Sidebar -->
-<script src="https://unpkg.com/feather-icons"></script>
 
 <div class="scrollable-content">
     <div class="main-content">
@@ -16,60 +15,55 @@
             </ul>
         @endif
 
-        <form action="https://lalmarbooks.onrender.com/books/create" method="POST" enctype="multipart/form-data"
-            class="book-form">
+        <form action="{{ route('books.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="form-group">
                 <label for="title">Book Title</label>
-                <input type="text" name="title" id="title" value="{{ old('title') }}" required class="form-control">
+                <input type="text" name="title" id="title" required>
             </div>
 
             <div class="form-group">
                 <label for="author">Author</label>
-                <input type="text" name="author" id="author" value="{{ old('author') }}" required class="form-control">
+                <input type="text" name="author" id="author" required>
             </div>
 
             <div class="form-group">
                 <label for="price">Price</label>
-                <input type="number" name="price" id="price" value="{{ old('price') }}" step="0.01" required
-                    class="form-control">
+                <input type="number" name="price" id="price" step="0.01" required>
             </div>
 
             <div class="form-group">
                 <label for="category">Category</label>
-                <select name="category" id="category" required class="form-control">
-                    <option value="1" {{ old('category') == 1 ? 'selected' : '' }}>Fiction</option>
-                    <option value="2" {{ old('category') == 2 ? 'selected' : '' }}>Non-Fiction</option>
-                    <option value="3" {{ old('category') == 3 ? 'selected' : '' }}>Science</option>
+                <select name="category" id="category" required>
+                    <option value="1">Fiction</option>
+                    <option value="2">Non-Fiction</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label for="description">Description</label>
-                <textarea name="description" id="description" required>{{ old('description') }}</textarea>
+                <textarea name="description" id="description" required></textarea>
             </div>
 
             <div class="form-group">
                 <label for="pdf">Upload PDF</label>
-                <input type="file" name="pdf" id="pdf" accept="application/pdf" required class="form-control-file">
+                <input type="file" name="pdf" id="pdf" accept="application/pdf" required>
             </div>
 
             <div class="form-group">
                 <label for="image">Upload Book Image</label>
-                <input type="file" name="image" id="image" accept="image/jpeg, image/png" required
-                    class="form-control-file">
+                <input type="file" name="image" id="image" accept="image/jpeg, image/png" required>
             </div>
 
-            <div class="button-container">
-                <button type="submit" class="btn btn-primary">Create Book</button>
-                <a href="{{ route('books.index') }}" class="btn btn-secondary">Back to Book List</a>
-            </div>
+            <button type="submit">Submit</button>
         </form>
+
     </div>
 </div>
 
 @include('body.footer') <!-- Include Footer -->
+
 
 <style>
     /* General Reset */
