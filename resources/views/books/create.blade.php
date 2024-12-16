@@ -1,6 +1,6 @@
-@include('body.head') 
-@include('body.header') <!-- Include Header -->
-@include('body.sidebar') <!-- Include Sidebar -->
+@extends('body.head')
+@extends('body.header')
+@extends('body.sidebar')
 
 <div class="scrollable-content">
     <div class="main-content">
@@ -15,7 +15,7 @@
             </ul>
         @endif
 
-        <form action="{{ route('books.store') }}" method="POST" enctype="multipart/form-data">
+        <form id="book-create-form" enctype="multipart/form-data" action="{{ route('books.store') }}" method="POST">
             @csrf
 
             <div class="form-group">
@@ -35,9 +35,10 @@
 
             <div class="form-group">
                 <label for="category">Category</label>
-                <select name="category" id="category" required>
-                    <option value="1">Fiction</option>
-                    <option value="2">Non-Fiction</option>
+                <select name="category_id" id="category_id" required>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category['id'] }}">{{ $category['name'] }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -56,13 +57,38 @@
                 <input type="file" name="image" id="image" accept="image/jpeg, image/png" required>
             </div>
 
-            <button type="submit">Submit</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
         </form>
-
     </div>
 </div>
 
-@include('body.footer') <!-- Include Footer -->
+@include('body.footer')
+
+<!-- <script>
+    function submitForm() {
+        let form = document.getElementById('book-create-form');
+        let formData = new FormData(form);
+
+        // Send POST request to the Node.js endpoint
+        fetch('/create-book', {
+            method: 'POST',
+            body: formData,
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                // Handle success
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Handle error
+            });
+    }
+</script> -->
+
+
+
+
 
 
 <style>

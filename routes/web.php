@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\fileUpload;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BackendController;
 
@@ -20,7 +21,7 @@ Route::get('/signin', function () {
 
 Route::post('/signup', [AuthController::class, 'signup'])->name('admin.signup.submit');
 Route::post('/signin', [AuthController::class, 'Signin'])->name('admin.signin.submit');
-
+Route::post('/upload', [fileUpload::class, 'upload']);
 // Route::post('/flutter/signup', [BackendController::class, 'fluttersignup'])->name('flutter.signup');
 // Route::post('/flutter/signin', [BackendController::class, 'fluttersignin'])->name('flutter.signin');
 

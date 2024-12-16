@@ -1,10 +1,10 @@
 @include('body.head')
-@include('body.header')  <!-- Include Header -->
+@include('body.header') <!-- Include Header -->
 @include('body.sidebar') <!-- Include Sidebar -->
 
 <div class="main-content">
     <h1>Edit Category</h1>
-    <form id="editCategoryForm">
+    <form id="editCategoryForm" action="{{ route('categories.update', $category['id']) }}" method="POST">
         @csrf
         @method('PUT')
         <div class="form-group">
@@ -16,42 +16,68 @@
 </div>
 
 @include('body.footer') <!-- Include Footer -->
+
 <script>
-    // Send a PUT request to the Node.js backend using Fetch API
-    document.getElementById('editCategoryForm').addEventListener('submit', function (event) {
-        event.preventDefault();  // Prevent the form from submitting normally
+    document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('editCategoryForm').addEventListener('submit', function (event) {
+            event.preventDefault();
 
-        const categoryId = "{{ $category['id'] }}";  // Category ID to be updated
-        const categoryName = document.getElementById('name').value;  // Get the input value
+            const form = event.target;
+            const formData = new FormData(form);
 
-        // Data to send
-        const data = {
-            name: categoryName
-        };
+            // Fetch JWT token from localStorage
+            const token = localStorage.getItem('auth_token');
 
-        fetch(`https://lalmarbooks.onrender.com/categories/${categoryId}`, {
-            method: 'PUT', // Send a PUT request
-            headers: {
-                'Content-Type': 'application/json',  // Send JSON data
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}` // Include JWT if needed
-            },
-            body: JSON.stringify(data) // Send data as JSON
-        })
-            .then(response => response.json())  // Parse JSON response
-            .then(data => {
-                if (data.success) {
-                    alert('Category updated successfully');
-                    window.location.href = '/categories';  // Redirect to categories page
-                } else {
-                    alert('Error updating category: ' + data.message);
-                }
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' // Include the CSRF token
+                },
+                body: formData
             })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while updating the category.');
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update category.');
+                    }
+
+                    // Try to parse response as JSON, but handle non-JSON gracefully
+                    return response.text().then(text => {
+                        try {
+                            return JSON.parse(text); // Parse JSON if possible
+                        } catch (error) {
+                            return { text: text }; // Return the text response if JSON parsing fails
+                        }
+                    });
+                })
+                .then(data => {
+                    if (data.text) {
+                        // Handle plain text response
+                        // alert(data.text || 'Category updated successfully!');
+                        window.location.href = '{{ route('categories.index') }}';
+                    } else {
+                        // Handle JSON response
+                        alert('Category updated successfully!');
+                        // Redirect to categories index after a short delay
+                        setTimeout(() => {
+                            window.location.href = '{{ route('categories.index') }}';
+                        }, 1500); // 1500 milliseconds (1.5 seconds)
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error.message);
+                });
+        });
     });
 </script>
+
+
+
+
+
+
+
+
 
 <style>
     /* General Styles */

@@ -20,21 +20,27 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($books as $book)
+            @if (count($books) > 0)
+                @foreach ($books as $book)
+                    <tr>
+                        <td>{{ $book['title'] }}</td>
+                        <td>{{ $book['author'] }}</td>
+                        <td>${{ number_format($book['price'], 2) }}</td>
+                        <td>
+                            <a href="{{ route('books.edit', $book['id']) }}" class="btn btn-warning">Edit</a>
+                            <form action="{{ route('books.delete', $book['id']) }}" method="POST" style="display:inline;">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+            @else
                 <tr>
-                    <td>{{ $book['title'] }}</td>
-                    <td>{{ $book['author'] }}</td>
-                    <td>${{ number_format($book['price'], 2) }}</td>
-                    <td>
-                        <a href="{{ route('books.edit', $book['id']) }}" class="btn btn-warning">Edit</a>
-                        <form action="{{ route('books.delete', $book['id']) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-danger">Delete</button>
-                        </form>
-                    </td>
+                    <td colspan="4" style="text-align: center;">No books are available.</td>
                 </tr>
-            @endforeach
+            @endif
         </tbody>
     </table>
 </div>
@@ -136,7 +142,8 @@
     }
 </style>
 
-<script>document.addEventListener("DOMContentLoaded", function () {
+
+<!-- <script>document.addEventListener("DOMContentLoaded", function () {
         const loadingIndicator = document.getElementById('loading');
         const tableBody = document.querySelector('.table tbody');
         const fetchBooksUrl = 'https://lalmarbooks.onrender.com/books/all';
@@ -227,4 +234,4 @@
             });
         }
     });
-</script>
+</script> -->

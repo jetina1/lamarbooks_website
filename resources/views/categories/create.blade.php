@@ -1,5 +1,5 @@
 @include('body.head')
-@include('body.header')  <!-- Include Header -->
+@include('body.header') <!-- Include Header -->
 @include('body.sidebar') <!-- Include Sidebar -->
 
 <div class="main-content">
@@ -17,40 +17,59 @@
 @include('body.footer') <!-- Include Footer -->
 
 <script>
+    // Handle the form submission
     document.getElementById('createCategoryForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // Prevent form from submitting normally
+        event.preventDefault(); // Prevent the default form submission
 
-        const categoryName = document.getElementById('name').value;  // Get the input value
+        const categoryName = document.getElementById('name').value.trim(); // Get and trim input value
 
-        // Data to be sent in the request
-        const data = {
+        // Check for empty input
+        if (!categoryName) {
+            alert('Category name cannot be empty.');
+            return;
+        }
+
+        // Prepare the data to send
+        const requestData = {
             name: categoryName
         };
 
-        // Make a POST request to the Node.js backend
+        // Make a POST request to the backend
         fetch('https://lalmarbooks.onrender.com/categories/create', {
-            method: 'POST', // Send a POST request
+            method: 'POST',
             headers: {
-                'Content-Type': 'application/json', // Send data as JSON
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` // Include JWT token if needed
             },
-            body: JSON.stringify(data) // Send data as JSON
+            body: JSON.stringify(requestData)
         })
-            .then(response => response.json()) // Parse JSON response
-            .then(data => {
-                if (data.success) {
-                    alert('Category created successfully');
-                    window.location.href = '/categories';  // Redirect to categories list page
+            .then(response => {
+                // Handle both 200 OK and 201 Created statuses
+                if (response.status === 200 || response.status === 201) {
+                    return response.json();
                 } else {
-                    alert('Error creating category: ' + data.message);
+                    throw new Error('Failed to create category. Status: ' + response.status);
+                }
+            })
+            .then(responseData => {
+                // Check if the backend returned success
+                if (responseData.success) {
+                    alert('Category created successfully!');
+                    window.location.href = '/categories'; // Redirect to categories page
+                } else {
+                    alert('Error: ' + responseData.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while creating the category.');
+                alert('An error occurred while creating the category. Please try again later.');
             });
     });
 </script>
+
+
+
+
 <style>
     /* General Styles */
     body {

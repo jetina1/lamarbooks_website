@@ -12,7 +12,8 @@
         <div class="form-group">
             <label>Current Book Image</label>
             @if(!empty($book['thumbnails']))
-                <img src="{{ $book['thumbnails'] }}" alt="Book Image" class="current-image">
+                <img src="{{ $book['thumbnails'] }}" alt="Book Thumbnail" class="current-image">
+                <p class="no-image" style="display: none;">No image available</p>
             @else
                 <p class="no-image">No image available</p>
             @endif
@@ -48,8 +49,8 @@
         <div class="form-group">
             <label for="isfree">Is Free</label>
             <select name="isfree" id="isfree" class="form-control" required>
-                <option value="1" {{ $book['isfree'] == 1 ? 'selected' : '' }}>Yes</option>
-                <option value="0" {{ $book['isfree'] == 0 ? 'selected' : '' }}>No</option>
+                <option value="true" {{ $book['isfree'] == true ? 'selected' : '' }}>true</option>
+                <option value="false" {{ $book['isfree'] == false ? 'selected' : '' }}>false</option>
             </select>
         </div>
 
@@ -85,6 +86,7 @@
                     method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                        'X-CSRF-TOKEN': csrfToken,
                     },
                     body: formData,
                 });
@@ -95,6 +97,17 @@
                     window.location.href = '/books'; // Redirect to book list
                 } else {
                     alert(`Error: ${result.error}`);
+                }
+
+                // Update the image src attribute
+                const currentImage = document.querySelector('.current-image');
+                if (result.thumbnails) {
+                    currentImage.src = result.thumbnails; // Use the full path from the response
+                    currentImage.style.display = 'block';
+                    document.querySelector('.no-image').style.display = 'none';
+                } else {
+                    currentImage.style.display = 'none';
+                    document.querySelector('.no-image').style.display = 'block';
                 }
             } catch (error) {
                 alert('Failed to update the book. Please try again later.');
@@ -130,11 +143,7 @@
         padding: 40px;
         border-radius: 10px;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        /* position: relative; */
-        margin-left: 250px;
-        /* Adjust this value to match the sidebar's width */
-        /* Ensures it's not overlapped by the sidebar */
-        /* z-index: 2; */
+        margin-left: 300px;
     }
 
     h2 {
